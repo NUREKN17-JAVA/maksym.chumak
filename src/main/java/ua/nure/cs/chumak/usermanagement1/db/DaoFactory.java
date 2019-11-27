@@ -3,12 +3,12 @@ package ua.nure.cs.chumak.usermanagement1.db;
 import java.io.IOException;
 import java.util.Properties;
 
-import ua.nure.cs.chumak.usermanagement1.domain.User;
+import javax.management.RuntimeErrorException;
 
 public abstract class DaoFactory {
 	
 	private static final String DAO_FACTORY = "dao.Factory";
-	protected static final String USER_DAO = "dao.UserDao";
+	protected static final String USER_DAO = "dao.ua.nure.cs.chumak.usermanagement1.db.UserDao";
 
 	protected static Properties properties;
 	
@@ -19,17 +19,24 @@ public abstract class DaoFactory {
 		try {
 			properties.load(DaoFactory.class.getClassLoader().getResourceAsStream("settings.properties"));
 		} catch (IOException e) {
-			throw new RuntimeException("incorrect or missing settings");
+			throw new RuntimeException(e);
 		}
+	}	
+	
+	public static void init(Properties prop) {
+		properties = prop;
+		instance = null;
 	}
 	
 	protected DaoFactory() {
 		
 	}
 	
+	public abstract UserDao getUserDao();
+	
 	public static synchronized DaoFactory getInstance() {
 		if(instance==null) {
-			Class<?> factoryClass;
+			Class factoryClass;
 			try {
 				factoryClass = Class.forName(
 						properties.getProperty(DAO_FACTORY));
@@ -43,6 +50,5 @@ public abstract class DaoFactory {
 	protected ConnectionFactory getConnectionFactory() {
 		return new ConnectionFactoryImpl(properties);
 	}
-	public abstract Dao<User> getUserDao();
 	
 }

@@ -12,110 +12,113 @@ import java.util.LinkedList;
 
 import ua.nure.cs.chumak.usermanagement1.domain.User;
 
-public class HsqldbUserDao implements Dao<User> {
-	
-	private static final String UPDATE_QUERY = "UPDATE users SET firstname = ?, lastname = ?, dateofbirth = ? WHERE id = ?";
-	private static final String DELETE_QUERY = "DELETE FROM users WHERE id = ?";
+class HsqldbUserDao implements UserDao {
+
+	private static final String DELETE_QUERY = "DELETE FROM USERS WHERE id = ?";
+	private static final String SELECT_ALL_QUERY = "SELECT id, firstname, lastname, dateofbirth FROM users";
+	private static final String INSERT_QUERY = "INSERT INTO users (firstname, lastname, dateofbirth) VALUES (?, ?, ?)";
 	private static final String FIND_QUERY = "SELECT * FROM users WHERE id = ?";
-	private static final String SELECT_QUERY = "SELECT * FROM users";
-	private static final String CALL_IDENTITY = "call IDENTITY()";
-	private static final String INSERT_QUERY = "INSERT INTO users (firstname, lastname, dateofbirth) VALUES(?, ? ,?);";
-	ConnectionFactory connectionFactory;
+	private static final String UPDATE_QUERY = "UPDATE USERS SET firstname = ?, lastname = ?, dateofbirth = ? WHERE id = ?";
+	private ConnectionFactory connectionFactory;
+	
+	public HsqldbUserDao(ConnectionFactory connectionFactory2) {
+		this.connectionFactory=connectionFactory;
+	}
+	
 	
 	public ConnectionFactory getConnectionFactory() {
-	    return connectionFactory;
-	  }
-	
+		return connectionFactory;
+	}
+
+
 	public void setConnectionFactory(ConnectionFactory connectionFactory) {
-	    this.connectionFactory = connectionFactory;
-	  }
-	
-	public HsqldbUserDao(ConnectionFactory connectionFactory) {
 		this.connectionFactory = connectionFactory;
 	}
 
+
 	@Override
-	public User create(User entity) throws DatabaseException {
-		Connection connection = connectionFactory.createConnection();
+	public User create(User user) throws DatabaseException {
+		// TODO Auto-generated method stub
 		try {
-			
-			PreparedStatement preparedStatement = 
-					connection.prepareStatement(INSERT_QUERY);
-			preparedStatement.setString(1, entity.getFirstName());
-			preparedStatement.setString(2, entity.getLastName());
-			preparedStatement.setDate(3, new Date(entity.getDateOfBirth().getTime()));
-			int numberOfRows = preparedStatement.executeUpdate();
-			if(numberOfRows != 1) {
-				throw new DatabaseException("Number of inserted rows is wrong: " +numberOfRows);
+			Connection connection = connectionFactory.createConnection();
+			PreparedStatement statement = connection.prepareStatement(INSERT_QUERY);
+			statement.setString(1, user.getFirstName());
+			statement.setString(2, user.getLastName());
+			statement.setDate(3, new Date(user.getDateOfBirth().getTime()));
+			int n = statement.executeUpdate();
+			if (n != 1) {
+				throw new DatabaseException("Number of the inserted rows: " + n);
 			}
-			CallableStatement callableStatement = 
-					connection.prepareCall(CALL_IDENTITY);
-			ResultSet keys = callableStatement.executeQuery();
-			if(keys.next()) {
-				entity.setId(keys.getLong(1));
+			CallableStatement callabelStatement = connection.prepareCall("call IDENTITY()");
+			ResultSet keys = callabelStatement.executeQuery();
+			if (keys.next()) {
+				user.setId(new Long(keys.getLong(1)));
 			}
 			keys.close();
-			callableStatement.close();
-			preparedStatement.close();
+			callabelStatement.close();
+			statement.close();
 			connection.close();
-			return entity;
-			
+			return user;
+		} catch (DatabaseException e) {
+			throw e;
 		} catch (SQLException e) {
+			// TODO Auto-generated catch block
 			throw new DatabaseException(e);
 		}
 	}
 
 	@Override
-	public void update(User entity) throws DatabaseException {
-		 try {
-	            Connection connection = connectionFactory.createConnection();
-	            PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_QUERY);
-	            preparedStatement.setString(1, entity.getFirstName());
-	            preparedStatement.setString(2, entity.getLastName());
-	            preparedStatement.setDate(3, new Date(entity.getDateOfBirth()
-	                                                        .getTime()));
-	            preparedStatement.setLong(4, entity.getId());
+	public void update(User user) throws DatabaseException {
+		// TODO Auto-generated method stub
+		try {
+            Connection connection = connectionFactory.createConnection();
+            PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_QUERY);
+            preparedStatement.setString(1, user.getFirstName());
+            preparedStatement.setString(2, user.getLastName());
+            preparedStatement.setDate(3, new Date(user.getDateOfBirth().getTime()));
+            preparedStatement.setLong(4, user.getId());
 
-	            int changedRows = preparedStatement.executeUpdate();
+            int insertedRows = preparedStatement.executeUpdate();
 
-	            if (changedRows != 1) {
-	                throw new DatabaseException("Number of inserted rows: " + changedRows);
-	            }
+            if (insertedRows != 1) {
+                throw new DatabaseException("Number of inserted rows: " + insertedRows);
+            }
 
-	            connection.close();
-	            preparedStatement.close();
-	        } catch (SQLException e) {
-	            throw new DatabaseException(e);
-	        }//Testing merge git 
-		
+            connection.close();
+            preparedStatement.close();
+        } catch (DatabaseException e) {
+            throw new DatabaseException(e.toString());
+        }catch (SQLException e) {
+            throw new DatabaseException(e.toString());
+        }
+
 	}
 
 	@Override
-	public User delete(User entity) throws DatabaseException {
-		
+	public void delete(User user) throws DatabaseException {
+		// TODO Auto-generated method stub
 		try {
-			Connection connection = connectionFactory.createConnection();
-			PreparedStatement statement = connection.prepareStatement(DELETE_QUERY);
-			statement.setLong(1, entity.getId());
-			int removedRows = statement.executeUpdate();
+            Connection connection = connectionFactory.createConnection();
+
+            PreparedStatement statement = connection.prepareStatement(DELETE_QUERY);
+            statement.setLong(1, user.getId());
+
+            int removedRows = statement.executeUpdate();
 
             if (removedRows != 1) {
                 throw new DatabaseException("Number of removed rows: " + removedRows);
             }
+
             connection.close();
-			statement.close();
-			
-		} catch (DatabaseException e) {
-			throw e;
-		}
-		catch (SQLException e) {
-			throw new DatabaseException(e);
-		}
-		return null;
+            statement.close();
+        } catch (SQLException e) {
+            throw new DatabaseException(e);
+        }
 	}
 
 	@Override
 	public User find(Long id) throws DatabaseException {
+		// TODO Auto-generated method stub
 		Connection connection = connectionFactory.createConnection();
 		User user = new User();
 		try {
@@ -139,24 +142,27 @@ public class HsqldbUserDao implements Dao<User> {
 	}
 
 	@Override
-	public Collection<User> findAll() throws DatabaseException {
-		Collection<User> result = new LinkedList<User>();
+	public Collection findAll() throws DatabaseException {
+		// TODO Auto-generated method stub
+		Collection result = new LinkedList();
 		
-		Connection connection = connectionFactory.createConnection();		
-		Statement statement;
 		try {
-			statement = connection.createStatement();
-			ResultSet resultSet = statement.executeQuery(SELECT_QUERY);
-			
-			while(resultSet.next()) {
+			Connection connection = connectionFactory.createConnection();
+			Statement statement = connection.createStatement();
+			ResultSet resultSet = statement.executeQuery(SELECT_ALL_QUERY);
+			while (resultSet.next()) {
 				User user = new User();
-				user.setId(resultSet.getLong(1));
+				user.setId(new Long(resultSet.getLong(1)));
 				user.setFirstName(resultSet.getString(2));
 				user.setLastName(resultSet.getString(3));
 				user.setDateOfBirth(resultSet.getDate(4));
 				result.add(user);
 			}
+		} catch (DatabaseException e) {
+			// TODO Auto-generated catch block
+			throw e;
 		} catch (SQLException e) {
+			// TODO Auto-generated catch block
 			throw new DatabaseException(e);
 		}
 		
